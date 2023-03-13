@@ -4,14 +4,14 @@ mod object;
 
 
 use object::Object;
-use crate::object::BasicBehavior;
+use crate::object::{BasicBehavior, ExtendBehavior};
 use std::borrow::BorrowMut;
 use std::fmt::Display;
 use std::str;
 use std::borrow::Borrow;
 use crate::object::Transition;
 
-use crate::object::state::state_sending::StateSending;
+use crate::object::state::sending::StateSending;
 
 fn main() {
 
@@ -19,19 +19,23 @@ fn main() {
    let mail = Mail::new("Bilbo Beggins".to_string());
 
    // creating object instance in defoult InitState
-   let object = Object::from(Box::new(mail));
+   let mut object = Object::from(Box::new(mail));
    println!("{}", object);
+
+   object.change_receiver("new receiver");
 
    // trying transit to SendingState. Reciver is empty, so we`ll stay at current state
    let mut object = object.try_transit(StateSending::new());
    println!("{}", object);
 
-   *object.lock().unwrap().receiver_mut() = "Frodo Beggins".to_string();
+   //*object.lock().unwrap().receiver_mut() = "Frodo Beggins".to_string();
    
    // now we will transit
-   let object = object.try_transit(StateSending::new());
+   let mut object = object.try_transit(StateSending::new());
    println!("{}", object);
 
+   object.change_receiver("new receiver");
+   println!("{}", object);
 
 }  
 

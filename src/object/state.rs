@@ -1,5 +1,5 @@
-pub mod state_init;
-pub mod state_sending;
+pub mod init;
+pub mod sending;
 mod delivered;
 
 use std::fmt::Display;

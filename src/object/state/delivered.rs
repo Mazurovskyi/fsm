@@ -33,7 +33,7 @@ impl Display for Delivered{
 }
 
 impl ExtendBehavior for Delivered{
-    fn change_insurance(&mut self, _receiver: &str){
+    fn change_receiver(&mut self, _receiver: &str){
         println!("Tle mail has delivered! You cannot change the receiver.")
     }
 }

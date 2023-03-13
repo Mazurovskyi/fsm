@@ -8,7 +8,7 @@ pub mod stack;
 pub mod state;
 
 use stack::Stack;
-use state::{state_init::InitState, State, Status, BoxState};
+use state::{init::InitState, State, Status, BoxState};
 
 
 /// trait describes how to interact with object data
@@ -20,7 +20,7 @@ pub trait BasicBehavior : Display{
 
 /// trait describes state-specific behavior
 pub trait ExtendBehavior{
-    fn change_insurance(&mut self, receiver: &str);
+    fn change_receiver(&mut self, receiver: &str);
 }
 
 pub struct Object{
@@ -86,8 +86,8 @@ impl Display for Object {
     }
 }
 impl ExtendBehavior for Object{
-    fn change_insurance(&mut self, receiver: &str){
-       //self.state().as_ref().unwrap().change_insurance(self.data_mut(), receiver);
+    fn change_receiver(&mut self, receiver: &str){
+       self.state_mut().as_mut().unwrap().change_receiver(receiver)
     }
  }
 
@@ -173,7 +173,7 @@ pub trait Transition : History{
         let weak_ref = Arc::downgrade(&obj_data);
 
         self.set_data(obj_data);
-        
+
         self.state_mut().as_mut().unwrap().set_data(weak_ref);
 
         self
