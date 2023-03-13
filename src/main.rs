@@ -5,13 +5,11 @@ mod object;
 
 use object::Object;
 use crate::object::BasicBehavior;
-use crate::object::BaseObject;
 use std::borrow::BorrowMut;
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::str;
 use std::borrow::Borrow;
-use crate::object::{Transition, ExtendBehavior};
+use crate::object::Transition;
 
 use crate::object::state::state_sending::StateSending;
 
@@ -28,7 +26,7 @@ fn main() {
    let mut object = object.try_transit(StateSending::new());
    println!("{}", object);
 
-   *object.receiver_mut() = "Frodo Beggins".to_string();
+   *object.lock().unwrap().receiver_mut() = "Frodo Beggins".to_string();
    
    // now we will transit
    let object = object.try_transit(StateSending::new());

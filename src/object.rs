@@ -2,6 +2,7 @@ use std::borrow::{BorrowMut, Borrow};
 
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
+use std::sync::{Arc, Mutex};
 
 pub mod stack;
 pub mod state;
@@ -23,24 +24,33 @@ pub trait ExtendBehavior{
 }
 
 pub struct Object{
-    data: Option<Box<dyn BasicBehavior>>,
+    data: Option<Arc<Mutex<Box<dyn BasicBehavior>>>>,
     current_state: Option<BoxState>,
     history: Stack
 }
 impl Object{
     pub fn from(data: Box<dyn BasicBehavior>)->Self{
+
+        let obj_data = Arc::new(Mutex::new(data));
+        let mut init_state = InitState::new();
+
+        init_state.set_data(Arc::downgrade(&obj_data));
+
         Self{
-            data: Some(data),
-            current_state: Some(Box::new(InitState::new())), 
+            data: Some(obj_data),
+            current_state: Some(Box::new(init_state)), 
             history: Stack::default()
         }
     }
 }
 impl BaseObject for Object{
-    fn data(&self)->&dyn BasicBehavior{
+    fn data(&self)->&Option<Arc<Mutex<Box<dyn BasicBehavior>>>>{
         self.data.borrow()
     }
-    fn extract_data(&mut self)->&mut dyn BasicBehavior{
+    fn mut_data(&mut self)->&mut Option<Arc<Mutex<Box<dyn BasicBehavior>>>>{
+        self.data.borrow_mut()
+    }
+    fn extract_data(&mut self)->Arc<Mutex<Box<dyn BasicBehavior>>>{
         self.data.take().unwrap()
     }
     fn history(&mut self)->&mut Stack{
@@ -57,21 +67,21 @@ impl History for Object{}
 impl Transition for Object{}
 
 impl Deref for Object{
-    type Target = Box<dyn BasicBehavior>;    //<Object<T> as BaseObject>::Data;
+    type Target = Arc<Mutex<Box<dyn BasicBehavior>>>;    //<Object<T> as BaseObject>::Data;
     fn deref(&self) -> &Self::Target {
-        &self.data
+        self.data().as_ref().unwrap()
     }
 }
 impl DerefMut for Object{
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
+        self.mut_data().as_mut().unwrap()
     }
 }
 impl Display for Object {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "\nstate: {}\ndata: {}\nhistory: {}\n", 
         self.current_state.as_ref().unwrap(), 
-        self.data(),
+        self.data().as_ref().unwrap().lock().unwrap(),
         self.history)
     }
 }
@@ -104,8 +114,9 @@ pub trait BaseObject{
     /// May be a collection, smart pointer or an another struct.
     //type Data;
 
-    fn data(&self)->&dyn BasicBehavior;
-    fn extract_data(&mut self)->&mut dyn BasicBehavior;
+    fn data(&self)->&Option<Arc<Mutex<Box<dyn BasicBehavior>>>>;
+    fn mut_data(&mut self)->&mut Option<Arc<Mutex<Box<dyn BasicBehavior>>>>;
+    fn extract_data(&mut self)->Arc<Mutex<Box<dyn BasicBehavior>>>;
     fn history(&mut self)->&mut Stack;
     fn state_mut(&mut self)->&mut Option<BoxState>;
     fn state(&self)->&Option<BoxState>;
@@ -134,22 +145,36 @@ pub trait Transition : History{
 
         //let mut serialized = self.serialize();
 
-        match target.try_transit(self.extract_data()){
-            Status::Ok(state) => {
+        let obj_data = match target.try_transit(self.extract_data()){
+            Status::Ok(obj_data) => {
                 let current_state = self.take_state();
 
-                if &current_state != &state{
+                if &current_state != &target{
                     self.push_to_history(current_state)
                 }
                 
-                self.set_new_state(state)
+                
+                self.set_new_state(target);
+
+                obj_data
             },
-            Status::Unreachable => return self,
-            Status::Fail => {
-                let previous_state = self.pull_from_history().unwrap_or(Box::new(InitState::new()));
-                self.set_new_state(previous_state)
+            Status::Unreachable(obj_data) => obj_data,
+            Status::Fail(obj_data) => {
+
+                let init_state = InitState::new();
+
+                let previous_state = self.pull_from_history().unwrap_or(Box::new(init_state));
+                self.set_new_state(previous_state);
+
+                obj_data
             }
         };
+
+        let weak_ref = Arc::downgrade(&obj_data);
+
+        self.set_data(obj_data);
+        
+        self.state_mut().as_mut().unwrap().set_data(weak_ref);
 
         self
     }
@@ -160,6 +185,9 @@ pub trait Transition : History{
     }
     fn take_state(&mut self)->BoxState{
         self.state_mut().take().unwrap()
+    }
+    fn set_data(&mut self, obj_data: Arc<Mutex<Box<dyn BasicBehavior>>>){
+        *self.mut_data() = Some(obj_data)
     }
 
 }
