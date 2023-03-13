@@ -11,6 +11,8 @@ use stack::Stack;
 use state::{init::InitState, State, Status, BoxState};
 
 
+pub type ObjectData = Mutex<Box<dyn BasicBehavior>>;
+
 /// trait describes how to interact with object data
 pub trait BasicBehavior : Display{
     fn receiver(&self)->&str;
@@ -24,7 +26,7 @@ pub trait ExtendBehavior{
 }
 
 pub struct Object{
-    data: Option<Arc<Mutex<Box<dyn BasicBehavior>>>>,
+    data: Option<Arc<ObjectData>>,
     current_state: Option<BoxState>,
     history: Stack
 }
@@ -44,13 +46,13 @@ impl Object{
     }
 }
 impl BaseObject for Object{
-    fn data(&self)->&Option<Arc<Mutex<Box<dyn BasicBehavior>>>>{
+    fn data(&self)->&Option<Arc<ObjectData>>{
         self.data.borrow()
     }
-    fn mut_data(&mut self)->&mut Option<Arc<Mutex<Box<dyn BasicBehavior>>>>{
+    fn mut_data(&mut self)->&mut Option<Arc<ObjectData>>{
         self.data.borrow_mut()
     }
-    fn extract_data(&mut self)->Arc<Mutex<Box<dyn BasicBehavior>>>{
+    fn extract_data(&mut self)->Arc<ObjectData>{
         self.data.take().unwrap()
     }
     fn history(&mut self)->&mut Stack{
@@ -67,7 +69,7 @@ impl History for Object{}
 impl Transition for Object{}
 
 impl Deref for Object{
-    type Target = Arc<Mutex<Box<dyn BasicBehavior>>>;    //<Object<T> as BaseObject>::Data;
+    type Target = Arc<ObjectData>;    //<Object<T> as BaseObject>::Data;
     fn deref(&self) -> &Self::Target {
         self.data().as_ref().unwrap()
     }
@@ -114,9 +116,9 @@ pub trait BaseObject{
     /// May be a collection, smart pointer or an another struct.
     //type Data;
 
-    fn data(&self)->&Option<Arc<Mutex<Box<dyn BasicBehavior>>>>;
-    fn mut_data(&mut self)->&mut Option<Arc<Mutex<Box<dyn BasicBehavior>>>>;
-    fn extract_data(&mut self)->Arc<Mutex<Box<dyn BasicBehavior>>>;
+    fn data(&self)->&Option<Arc<ObjectData>>;
+    fn mut_data(&mut self)->&mut Option<Arc<ObjectData>>;
+    fn extract_data(&mut self)->Arc<ObjectData>;
     fn history(&mut self)->&mut Stack;
     fn state_mut(&mut self)->&mut Option<BoxState>;
     fn state(&self)->&Option<BoxState>;
@@ -186,7 +188,7 @@ pub trait Transition : History{
     fn take_state(&mut self)->BoxState{
         self.state_mut().take().unwrap()
     }
-    fn set_data(&mut self, obj_data: Arc<Mutex<Box<dyn BasicBehavior>>>){
+    fn set_data(&mut self, obj_data: Arc<ObjectData>){
         *self.mut_data() = Some(obj_data)
     }
 

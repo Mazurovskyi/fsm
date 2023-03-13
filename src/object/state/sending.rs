@@ -1,10 +1,9 @@
-use crate::object::{ExtendBehavior, State, Status};  
-use crate::BasicBehavior;
+use crate::object::{ExtendBehavior, State, Status, ObjectData};  
 use std::fmt::Display;
 use std::sync::{Arc, Mutex, Weak};
 
 #[derive(Debug)]
-pub struct StateSending(u8, Option<Weak<Mutex<Box<dyn BasicBehavior>>>>);
+pub struct StateSending(u8, Option<Weak<ObjectData>>);
 impl StateSending {
     pub fn new()->Box<Self>{
         Box::new(Self(1, None))
@@ -13,7 +12,7 @@ impl StateSending {
 
 
 impl State for StateSending{
-    fn try_transit(&self, obj_data: Arc<Mutex<Box<dyn BasicBehavior>>>)->Status {
+    fn try_transit(&self, obj_data: Arc<ObjectData>)->Status {
         let mut obj_guard = obj_data.lock().unwrap();
 
         if obj_guard.receiver() == ""{
@@ -32,7 +31,7 @@ impl State for StateSending{
     fn id(&self)->u8 {
         self.0
     }
-    fn set_data(&mut self, obj: Weak<Mutex<Box<dyn BasicBehavior>>>) {
+    fn set_data(&mut self, obj: Weak<ObjectData>) {
         self.1 = Some(obj)
     }
 }

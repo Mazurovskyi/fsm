@@ -2,16 +2,14 @@
 
 mod object;
 
-
-use object::Object;
-use crate::object::{BasicBehavior, ExtendBehavior};
-use std::borrow::BorrowMut;
-use std::fmt::Display;
-use std::str;
-use std::borrow::Borrow;
-use crate::object::Transition;
-
+use crate::object::{Object, Transition, BasicBehavior, ExtendBehavior};
 use crate::object::state::sending::StateSending;
+
+use std::borrow::{BorrowMut, Borrow};
+use std::fmt::Display;
+
+
+
 
 fn main() {
 

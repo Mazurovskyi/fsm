@@ -1,11 +1,11 @@
-use crate::object::{ExtendBehavior, State, Status};  
+use crate::object::{ExtendBehavior, State, Status, ObjectData};  
 
-use crate::object::BasicBehavior;
+
 use std::fmt::Display;
 use std::sync::{Arc, Mutex, Weak};
 
 #[derive(Debug)]
-pub struct Delivered(u8, Option<Weak<Mutex<Box<dyn BasicBehavior>>>>);
+pub struct Delivered(u8, Option<Weak<ObjectData>>);
 impl Delivered {
     pub fn new()->Self{
         Self(2, None)
@@ -14,14 +14,14 @@ impl Delivered {
 
 
 impl State for Delivered{
-    fn try_transit(&self, obj_data: Arc<Mutex<Box<dyn BasicBehavior>>>)->Status {
+    fn try_transit(&self, obj_data: Arc<ObjectData>)->Status {
 
         Status::Fail(obj_data)
     }
     fn id(&self)->u8 {
         self.0
     }
-    fn set_data(&mut self, obj: Weak<Mutex<Box<dyn BasicBehavior>>>){
+    fn set_data(&mut self, obj: Weak<ObjectData>){
         self.1 = Some(obj)
     }
 }
