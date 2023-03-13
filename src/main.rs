@@ -1,49 +1,73 @@
+#![feature(vec_push_within_capacity)]
 
-mod liba;
-use liba::*;
-use crate::liba::stack::Stack;
+mod object;
 
+
+use object::Object;
+use crate::object::BasicBehavior;
+use crate::object::BaseObject;
+use std::borrow::BorrowMut;
+use std::collections::HashMap;
+use std::fmt::Display;
+use std::str;
+use std::borrow::Borrow;
+use crate::object::{Transition, ExtendBehavior};
+
+use crate::object::state::state_sending::StateSending;
 
 fn main() {
 
-   // example:
+   // custom user struct
+   let mail = Mail::new("Bilbo Beggins".to_string());
 
-   let mut object = Object::new();
-   println!("state: {},    data: {:?}", object.state(), object.as_slice());
+   // creating object instance in defoult InitState
+   let object = Object::from(Box::new(mail));
+   println!("{}", object);
 
-   object.extend(&[1,2,3,4,5,6,7,8,9,10]);
-   object.extend(&[11, 12, 13, 14, 15, 16]);    // rewrite previous data
+   // trying transit to SendingState. Reciver is empty, so we`ll stay at current state
+   let mut object = object.try_transit(StateSending::new());
+   println!("{}", object);
 
-   println!("state: {},    data: {:?}", object.state(), object.as_slice());
+   *object.receiver_mut() = "Frodo Beggins".to_string();
+   
+   // now we will transit
+   let object = object.try_transit(StateSending::new());
+   println!("{}", object);
 
-   Stack::show();     // now transition history is clear
-
-   // trying to transit InitState -> StateA
-   let mut object = object.try_transit(Box::new(StateA::new()));
-
-   Stack::show();    // here we can see previous state: InitState
-
-   object.extend(&[11, 12, 13, 14, 15, 16]);    // extend previous data
-   println!("state: {},    data: {:?}", object.state(), object.as_slice());
-
-
-   // work with stack
-   println!("\n");
-
-   // transit from StateA to InitState. Always successfull.
-   let object = object.try_transit(Box::new(InitState::new()));
-
-   Stack::show();    // here we can see both previous state: InitState and StateA
-
-   let object = object.try_transit(Box::new(InitState::new()));
-   Stack::show();    // if state doesn`t change after transition executed - State doesn`t update
-
-   let object = object.try_transit(Box::new(StateA::new()));
-   Stack::show();    // here we can see three previous state
-
-   let object = object.try_transit(Box::new(StateB::new()));   // always return Fail
-   Stack::show();    // previous state from stack has pulled.
-
-   println!("state: {},    data: {:?}", object.state(), object.as_slice());
 
 }  
+
+
+struct Mail{
+   sender: String,
+   receiver: String,
+   insurance: u32
+}
+impl Mail{
+   fn new(sender: String)->Self{
+      Self { 
+         sender,
+         receiver: String::new(), 
+         insurance: 0
+      }
+   }
+}
+
+impl BasicBehavior for Mail{
+   fn receiver(&self)->&str{
+      self.receiver.borrow()
+   }
+   fn receiver_mut(&mut self)->&mut String{
+      self.receiver.borrow_mut()
+   }
+   fn insurance_mut(&mut self)->&mut u32 {
+      self.insurance.borrow_mut()
+   }
+}
+
+
+impl Display for Mail{
+   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+       write!(f, "mail [sender: {}     receiver: {}      insurance: {}]",self.sender, self.receiver, self.insurance)
+   }
+}
